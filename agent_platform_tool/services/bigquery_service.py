@@ -30,7 +30,7 @@ WITH pre_scored AS (
     m.Site_Type,
     IF(m.CPE_NAME IS NOT NULL, CONCAT(m.CPE_NAME, ' ', IFNULL(m.MODELNAME, '')), NULL) AS CPE_MODEL
   FROM `telco-demos.telco_churn_data.customer_churn_predictions` p
-  LEFT JOIN `telco-demos.telco_churn_data.telco_churn_200k_synthetic` m
+  LEFT JOIN `telco-demos.telco_churn_data.telco_churn_500k_synthetic` m
     ON p.CUSTOMER_IDENTIFER = m.CUSTOMER_IDENTIFER
   WHERE p.CUSTOMER_IDENTIFER = @cust_id
 ),
@@ -59,7 +59,7 @@ bulk_scored AS (
     m.Site_Type,
     IF(m.CPE_NAME IS NOT NULL, CONCAT(m.CPE_NAME, ' ', IFNULL(m.MODELNAME, '')), NULL) AS CPE_MODEL
   FROM `telco-demos.telco_churn_data.bulk_batch_predictions` p
-  LEFT JOIN `telco-demos.telco_churn_data.telco_churn_200k_synthetic` m
+  LEFT JOIN `telco-demos.telco_churn_data.telco_churn_500k_synthetic` m
     ON p.CUSTOMER_IDENTIFER = m.CUSTOMER_IDENTIFER
   WHERE p.CUSTOMER_IDENTIFER = @cust_id
 ),
@@ -89,7 +89,7 @@ on_the_fly AS (
     IF(CPE_NAME IS NOT NULL, CONCAT(CPE_NAME, ' ', IFNULL(MODELNAME, '')), NULL) AS CPE_MODEL
   FROM ML.PREDICT(
     MODEL `telco-demos.telco_churn_data.churn_logreg_model`,
-    (SELECT *, FALSE AS is_eval FROM `telco-demos.telco_churn_data.telco_churn_200k_synthetic` WHERE CUSTOMER_IDENTIFER = @cust_id)
+    (SELECT *, FALSE AS is_eval FROM `telco-demos.telco_churn_data.telco_churn_500k_synthetic` WHERE CUSTOMER_IDENTIFER = @cust_id)
   )
 )
 SELECT * FROM pre_scored
@@ -181,7 +181,7 @@ SELECT
   ROUND(m.RENTAL * 12 * s.CHURN_PROBABILITY, 0) AS annual_revenue_at_risk_inr,
   s.TOP_RISK_DRIVERS
 FROM scored_subs s
-INNER JOIN `telco-demos.telco_churn_data.telco_churn_200k_synthetic` m
+INNER JOIN `telco-demos.telco_churn_data.telco_churn_500k_synthetic` m
   ON s.CUSTOMER_IDENTIFER = m.CUSTOMER_IDENTIFER
 WHERE m.INSTALL_CITY = @city
   AND (@site_type = 'ALL' OR m.Site_Type = @site_type)

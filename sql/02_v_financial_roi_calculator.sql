@@ -34,7 +34,7 @@ WITH all_scored AS (
     m.CUSTREPEATS,
     p.USAGE
   FROM `telco-demos.telco_churn_data.bulk_batch_predictions` p
-  LEFT JOIN `telco-demos.telco_churn_data.telco_churn_200k_synthetic` m
+  LEFT JOIN `telco-demos.telco_churn_data.telco_churn_500k_synthetic` m
     ON p.CUSTOMER_IDENTIFER = m.CUSTOMER_IDENTIFER
 )
 SELECT

@@ -45,7 +45,7 @@ enriched AS (
     m.FTRS,
     m.SMARTSRS
   FROM scored_subs s
-  INNER JOIN `telco-demos.telco_churn_data.telco_churn_200k_synthetic` m
+  INNER JOIN `telco-demos.telco_churn_data.telco_churn_500k_synthetic` m
     ON s.CUSTOMER_IDENTIFER = m.CUSTOMER_IDENTIFER
 ),
 cpe_agg AS (

@@ -81,7 +81,7 @@ def get_customer_churn_and_telemetry(customer_id: str) -> str:
         b.USAGE,
         b.AON
       FROM `telco-demos.telco_churn_data.bulk_batch_predictions` b
-      LEFT JOIN `telco-demos.telco_churn_data.telco_churn_200k_synthetic` m
+      LEFT JOIN `telco-demos.telco_churn_data.telco_churn_500k_synthetic` m
         ON b.CUSTOMER_IDENTIFER = m.CUSTOMER_IDENTIFER
       WHERE b.CUSTOMER_IDENTIFER = @cust_id
     )

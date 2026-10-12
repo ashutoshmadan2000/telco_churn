@@ -33,6 +33,6 @@ SELECT
     1
   )[OFFSET(0)].value AS dominant_cpe_model
 FROM scored_subs s
-INNER JOIN `telco-demos.telco_churn_data.telco_churn_200k_synthetic` m
+INNER JOIN `telco-demos.telco_churn_data.telco_churn_500k_synthetic` m
   ON s.CUSTOMER_IDENTIFER = m.CUSTOMER_IDENTIFER
 GROUP BY m.INSTALL_CITY, m.Site_Type;
