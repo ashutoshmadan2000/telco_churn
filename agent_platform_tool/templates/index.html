@@ -1,0 +1,386 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Airtel Churn Intelligence & Retention Agent</title>
+  <link href="https://fonts.googleapis.com/css2?family=Google+Sans:wght@400;500;700&family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script src="https://unpkg.com/leaflet.heat@0.2.0/dist/leaflet-heat.js"></script>
+  <style>
+/* {{INLINE_CSS}} */
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <div class="brand">
+        <div class="brand-logo">airtel</div>
+        <div>
+          <div class="brand-title">Churn Intelligence & Retention Platform</div>
+          <div class="brand-subtitle">BigQuery ML + Gemini Enterprise • Geospatial Heatmap, CTO Network Ops, CFO ROI Simulator &amp; Care Agent</div>
+        </div>
+      </div>
+    </header>
+
+    <div class="nav-tabs">
+      <button class="tab-btn active" id="btnTabMap" onclick="switchTab('map')">1. Regional Outage &amp; Churn Heatmap</button>
+      <button class="tab-btn" id="btnTabNet" onclick="switchTab('net')">2. CTO / Network View</button>
+      <button class="tab-btn" id="btnTabRoi" onclick="switchTab('roi')">3. Commercial CFO View (ROI Calculator)</button>
+      <button class="tab-btn" id="btnTabCall" onclick="switchTab('call')">4. Frontline Care Agent View</button>
+    </div>
+
+    <!-- TAB 1: REGIONAL OUTAGE & CHURN HEATMAP -->
+    <div id="tabMap">
+      <div class="card">
+        <div class="section-title">Regional Outage &amp; Churn Heatmap — India Geospatial Analytics</div>
+        <p style="font-size: 13px; color: var(--text-sub); margin-bottom: 14px;">
+          Interactive India geospatial view of network outages, last-mile cabinet categories (<code>3rd Party</code>, <code>ODC-SMART SPLIT</code>, <code>Shared Sites</code>), and subscriber churn hotspots. Click any <strong>City</strong> bubble or consolidated table row to drill down into <strong>Category Breakdowns</strong> and inspect the <strong>Top 10 High-Churn Subscribers</strong>.
+        </p>
+
+        <div class="map-toolbar">
+          <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+            <button class="map-btn" id="btnViewIndia" onclick="setMapView('india')">🇮🇳 Full India Map</button>
+            <button class="map-btn active" id="btnViewCircle" onclick="setMapView('circle')">📍 Zoom to Active Circle (15 Cities)</button>
+            <button class="map-btn active" id="btnToggleHeat" onclick="toggleHeatLayer()">🔥 Thermal Heat Layer: ON</button>
+          </div>
+          <div style="display: flex; gap: 8px; align-items: center;">
+            <span id="cityFilterBadge" style="font-size: 12px; color: var(--primary); font-weight: 600; display: none;"></span>
+            <button class="map-btn" id="btnResetCity" style="display: none;" onclick="filterByCity(null)">Show All 15 Cities</button>
+          </div>
+        </div>
+
+        <div id="indiaChurnMap"></div>
+
+        <div class="map-legend">
+          <span><strong>Churn Categories:</strong></span>
+          <span><span class="legend-dot" style="background: #D93025;"></span><strong>High Risk:</strong> 50%+</span>
+          <span><span class="legend-dot" style="background: #F9AB00;"></span><strong>Medium Risk:</strong> 30–50%</span>
+          <span><span class="legend-dot" style="background: #188038;"></span><strong>Low Risk:</strong> 0–30%</span>
+          <span style="margin-left: auto;"><em>Bubble size = Subscriber Volume &amp; Revenue at Risk</em></span>
+        </div>
+
+        <div class="kpi-grid" style="margin-top: 14px; margin-bottom: 14px;">
+          <div class="kpi-box">
+            <div class="kpi-label" id="mapKpiSubsLabel">Total Scored Subscribers</div>
+            <div class="kpi-val" id="mapTotalSubs">-</div>
+            <div class="kpi-sub" id="mapSubsNote">Across 15 Cities in Gujarat Circle</div>
+          </div>
+          <div class="kpi-box">
+            <div class="kpi-label">High (50%+) + Med (30–50%) Subs</div>
+            <div class="kpi-val" id="mapAtRiskSubs">-</div>
+            <div class="kpi-sub" id="mapTierBreakdownNote">High / Med / Low Risk Breakdown</div>
+          </div>
+          <div class="kpi-box">
+            <div class="kpi-label">Annual Revenue at Risk</div>
+            <div class="kpi-val" id="mapTotalArr" style="color: var(--risk-high);">-</div>
+            <div class="kpi-sub" id="mapArrBreakdownNote">High + Med Risk ARR: -</div>
+          </div>
+          <div class="kpi-box">
+            <div class="kpi-label">Weighted Churn &amp; Outages</div>
+            <div class="kpi-val" id="mapAvgChurn">-</div>
+            <div class="kpi-sub" id="mapOutageNote">Avg Outages &amp; Repeat Tickets</div>
+          </div>
+        </div>
+
+        <div class="drilldown-breadcrumb-bar" id="mapDrilldownBar">
+          <div id="mapBreadcrumbText" class="breadcrumb-trail">
+            <span>🇮🇳 <strong>All 15 Cities (Consolidated View)</strong></span>
+            <span class="breadcrumb-hint">— Click any City row below to expand its Last-Mile Category Breakdown &amp; Top 10 High-Churn Subscribers</span>
+          </div>
+          <div style="display: flex; gap: 8px; align-items: center;">
+            <button class="map-btn" id="btnCollapseDrilldown" style="display: none;" onclick="collapseCityDrilldown()">✕ Collapse Drill-Down</button>
+          </div>
+        </div>
+
+        <div class="table-wrap">
+          <table class="data-table" id="cityHeatmapTable">
+            <thead>
+              <tr>
+                <th>City (Click to Drill Down)</th>
+                <th>Category Breakdown</th>
+                <th>Total Subscribers</th>
+                <th>Avg Outages (Hrs)</th>
+                <th>Avg Repeats</th>
+                <th>Dominant CPE Model</th>
+                <th>City Churn Rate</th>
+                <th>Annual Revenue at Risk</th>
+              </tr>
+            </thead>
+            <tbody id="mapTableBody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- TAB 2: CTO / NETWORK OPS & REMEDIATION VIEW -->
+    <div id="tabNet" style="display: none;">
+      <div class="card">
+        <div class="section-title">CTO / Network Operations &amp; Engineering Remediation Simulator (100K Scored Base)</div>
+        <p style="font-size: 13px; color: var(--text-sub); margin-bottom: 12px;">
+          Eliminate root-cause network churn before issuing commercial bill credits. Simulate the engineering ROI of proactive ONT hardware swaps, OTA Wi-Fi firmware patches, LCO partner splice audits, and aerial (<code>OH</code>) vs. underground (<code>UG</code>) fiber hardening across <strong>High Risk (50%+)</strong> and <strong>Medium Risk (30–50%)</strong> subscribers.
+        </p>
+        <div class="map-legend" style="margin-bottom: 14px;">
+          <span><strong>Churn Categories:</strong></span>
+          <span><span class="legend-dot" style="background: #D93025;"></span><strong>High Risk:</strong> 50%+</span>
+          <span><span class="legend-dot" style="background: #F9AB00;"></span><strong>Medium Risk:</strong> 30–50%</span>
+          <span><span class="legend-dot" style="background: #188038;"></span><strong>Low Risk:</strong> 0–30%</span>
+        </div>
+
+        <div class="map-toolbar" style="margin-bottom: 18px;">
+          <div style="display: flex; gap: 24px; flex-wrap: wrap; align-items: center;">
+            <div>
+              <label style="font-size: 13px; font-weight: 500;">Target Fault &amp; Outage Mitigation Rate (%): <strong id="lblNetMitigation">55%</strong></label><br>
+              <input type="range" id="rngNetMitigation" min="20" max="85" value="55" oninput="recalcNetworkOps()" style="width: 220px; margin-top: 6px;">
+            </div>
+            <div>
+              <label style="font-size: 13px; font-weight: 500;">Engineering CapEx/OpEx Cost Scale (%): <strong id="lblNetCost">100%</strong></label><br>
+              <input type="range" id="rngNetCost" min="50" max="150" value="100" oninput="recalcNetworkOps()" style="width: 220px; margin-top: 6px;">
+            </div>
+          </div>
+          <div style="display: flex; gap: 6px; flex-wrap: wrap;">
+            <button class="map-btn active" id="btnNetFilterAll" onclick="setNetFilter('ALL')">All Network Layers</button>
+            <button class="map-btn" id="btnNetFilterCpe" onclick="setNetFilter('CPE_HARDWARE')">📡 CPE / ONT Hardware</button>
+            <button class="map-btn" id="btnNetFilterPlant" onclick="setNetFilter('PLANT_ROLLOUT')">🔌 Last-Mile Plant &amp; Rollout</button>
+          </div>
+        </div>
+
+        <div class="kpi-grid">
+          <div class="kpi-box">
+            <div class="kpi-label">High (50%+) + Med (30–50%) Subs</div>
+            <div class="kpi-val" id="netAtRiskSubs">-</div>
+            <div class="kpi-sub" id="netSubNote">Across 100K Scored Base</div>
+          </div>
+          <div class="kpi-box">
+            <div class="kpi-label">Annual Revenue at Risk</div>
+            <div class="kpi-val" id="netArrAtRisk" style="color: var(--risk-high);">-</div>
+            <div class="kpi-sub" id="netArrNote">High + Med Risk ARR: -</div>
+          </div>
+          <div class="kpi-box">
+            <div class="kpi-label">Engineering Remediation Budget</div>
+            <div class="kpi-val" id="netRemediationCost">-</div>
+            <div class="kpi-sub" id="netTruckSavingsNote">Avoided Truck Rolls: -</div>
+          </div>
+          <div class="kpi-box">
+            <div class="kpi-label">Net ARR + Truck-Roll Savings</div>
+            <div class="kpi-val" id="netNetProtected" style="color: var(--risk-low);">-</div>
+            <div class="kpi-sub" id="netRoiMultNote">Engineering ROI: -</div>
+          </div>
+        </div>
+
+        <div id="netCpeSection">
+          <div class="sub-header-bar">
+            <div class="section-title" style="margin-bottom: 0;">📡 1. CPE / ONT Router Hardware &amp; Firmware Reliability Matrix</div>
+            <span style="font-size: 12px; color: var(--text-sub);">Unit Benchmarks: ONT Swap ₹850 • OTA Firmware Patch ₹120 • Field CPE Audit ₹350 • Standard Monitoring ₹0</span>
+          </div>
+          <div class="table-wrap">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>CPE / ONT Model</th>
+                  <th>Primary Cities</th>
+                  <th>Subs (At Risk)</th>
+                  <th>Outages (MTTR)</th>
+                  <th>Avg Repeats</th>
+                  <th>First-Time Fix (FTR)</th>
+                  <th>Churn Prob</th>
+                  <th>ARR at Risk</th>
+                  <th>Engineering Work Order</th>
+                  <th>Remediation Cost</th>
+                  <th>Net Benefit (ROI)</th>
+                </tr>
+              </thead>
+              <tbody id="netCpeTableBody"></tbody>
+            </table>
+          </div>
+        </div>
+
+        <div id="netPlantSection" style="margin-top: 24px;">
+          <div class="sub-header-bar">
+            <div class="section-title" style="margin-bottom: 0;">🔌 2. Last-Mile Fiber Plant, Rollout (OH vs. UG) &amp; Partner (LCO / Copper+FTTH) Matrix</div>
+            <span style="font-size: 12px; color: var(--text-sub);">Unit Benchmarks: Fiber Overbuild ₹650 • Cabinet Rebalance ₹400 • OH Hardening ₹380 • LCO Audit ₹320 • Standard Monitoring ₹0</span>
+          </div>
+          <div class="table-wrap">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>Plant &amp; Rollout Topology</th>
+                  <th>Top Cities (Pincodes)</th>
+                  <th>Subs (At Risk)</th>
+                  <th>Outages (Unplan / Plan)</th>
+                  <th>MTTR</th>
+                  <th>Repeats &amp; FTR %</th>
+                  <th>Churn Prob</th>
+                  <th>ARR at Risk</th>
+                  <th>Field / NOC Work Order</th>
+                  <th>Remediation Cost</th>
+                  <th>Net Benefit (ROI)</th>
+                </tr>
+              </thead>
+              <tbody id="netPlantTableBody"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- TAB 3: COMMERCIAL CFO VIEW — FINANCIAL ROI & MARGIN PROTECTION CALCULATOR -->
+    <div id="tabRoi" style="display: none;">
+      <div class="card">
+        <div class="section-title">Commercial CFO View — Financial ROI &amp; Margin Protection Simulator (100K Scored Base)</div>
+        <div class="map-legend" style="margin-bottom: 14px;">
+          <span><strong>Churn Categories:</strong></span>
+          <span><span class="legend-dot" style="background: #D93025;"></span><strong>High Risk:</strong> 50%+</span>
+          <span><span class="legend-dot" style="background: #F9AB00;"></span><strong>Medium Risk:</strong> 30–50%</span>
+          <span><span class="legend-dot" style="background: #188038;"></span><strong>Low Risk:</strong> 0–30% (₹0 Subsidy Guardrail)</span>
+        </div>
+        <div style="display: flex; gap: 24px; flex-wrap: wrap; margin-bottom: 20px; align-items: center;">
+          <div>
+            <label style="font-size: 13px; font-weight: 500;">Target Campaign Save Rate (%): <strong id="lblSaveRate">45%</strong></label><br>
+            <input type="range" id="rngSaveRate" min="15" max="80" value="45" oninput="recalcRoiTable()" style="width: 220px; margin-top: 6px;">
+          </div>
+          <div>
+            <label style="font-size: 13px; font-weight: 500;">Subsidy Guardrail Scale (% of Standard Offer): <strong id="lblCap">100%</strong></label><br>
+            <input type="range" id="rngCap" min="50" max="150" value="100" oninput="recalcRoiTable()" style="width: 220px; margin-top: 6px;">
+          </div>
+        </div>
+        <div class="kpi-grid">
+          <div class="kpi-box">
+            <div class="kpi-label">High (50%+) + Med (30–50%) Subs</div>
+            <div class="kpi-val" id="roiTotalSubs">-</div>
+            <div class="kpi-sub" id="roiSubsNote">Across 100K Scored Base</div>
+          </div>
+          <div class="kpi-box">
+            <div class="kpi-label">Annual Revenue at Risk</div>
+            <div class="kpi-val" id="roiExpectedLoss" style="color: var(--risk-high);">-</div>
+            <div class="kpi-sub" id="roiLossNote">Targetable High + Med Loss: -</div>
+          </div>
+          <div class="kpi-box">
+            <div class="kpi-label">Retention Campaign Cost</div>
+            <div class="kpi-val" id="roiOfferCost">-</div>
+            <div class="kpi-sub" id="roiCostNote">Low Risk (0–30%): ₹0 Subsidy</div>
+          </div>
+          <div class="kpi-box">
+            <div class="kpi-label">Net Margin Protected</div>
+            <div class="kpi-val" id="roiNetProtected" style="color: var(--risk-low);">-</div>
+            <div class="kpi-sub" id="roiMultNote">Combined Campaign ROI: -</div>
+          </div>
+        </div>
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Churn Category (Risk Tier)</th>
+              <th>Subscribers</th>
+              <th>Avg ARPU</th>
+              <th>Avg Churn Prob</th>
+              <th>Expected Annual Loss</th>
+              <th>Offer Budget</th>
+              <th>Net Margin Protected</th>
+              <th>ROI Multiple</th>
+            </tr>
+          </thead>
+          <tbody id="roiTableBody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- TAB 4: FRONTLINE CARE AGENT & CUSTOMER RETENTION -->
+    <div id="tabCall" style="display: none;">
+      <div class="card">
+        <div class="section-title">Lookup Subscriber Profile</div>
+        <div class="map-legend" style="margin-bottom: 12px;">
+          <span><strong>Churn Categories:</strong></span>
+          <span><span class="legend-dot" style="background: #D93025;"></span><strong>High Risk:</strong> 50%+</span>
+          <span><span class="legend-dot" style="background: #F9AB00;"></span><strong>Medium Risk:</strong> 30–50%</span>
+          <span><span class="legend-dot" style="background: #188038;"></span><strong>Low Risk:</strong> 0–30% (₹0 Subsidy Guardrail)</span>
+        </div>
+        <div class="search-box">
+          <input type="text" id="custInput" placeholder="Enter Customer ID (e.g. 9999116823)" value="9999116823">
+          <button class="btn-primary" onclick="lookupCustomer()">Analyze Churn Risk</button>
+        </div>
+        <div class="quick-samples">
+          <span>Quick Samples:</span>
+          <span class="sample-chip" onclick="setAndQuery('9999116823')">9999116823 (Outages Risk: 92.3% • High)</span>
+          <span class="sample-chip" onclick="setAndQuery('9999100271')">9999100271 (Barred Risk: 81.6% • High)</span>
+          <span class="sample-chip" onclick="setAndQuery('9999116647')">9999116647 (Repeat QoS: 42.2% • Medium)</span>
+          <span class="sample-chip" onclick="setAndQuery('9999108000')">9999108000 (Healthy WiFi+DTH: 8.9% • Low)</span>
+          <span class="sample-chip" onclick="setAndQuery('9999125001')">9999125001 (Unseen Batch 06 Live: 21.0% • Low)</span>
+        </div>
+      </div>
+
+      <div id="loading" class="card loading" style="display: none;">
+        <div class="spinner"></div>
+        <div>Querying BigQuery ML prediction engine and calculating SHAP attributions...</div>
+      </div>
+
+      <div id="resultCard" class="card" style="display: none;">
+        <div id="riskBanner" class="risk-banner high">
+          <div>
+            <div style="font-size: 13px; text-transform: uppercase; font-weight: 700; letter-spacing: 0.5px;">ML Predicted Churn Risk</div>
+            <div id="riskSummary" style="font-size: 14px; margin-top: 4px; color: var(--text-sub);"></div>
+          </div>
+          <div class="risk-score" id="riskScore">92.3%</div>
+        </div>
+
+        <div class="kpi-grid">
+          <div class="kpi-box">
+            <div class="kpi-label">Annual Revenue at Risk</div>
+            <div class="kpi-val" id="valArrRisk">₹0</div>
+          </div>
+          <div class="kpi-box">
+            <div class="kpi-label">Margin-Guarded Subsidy</div>
+            <div class="kpi-val" id="valOfferCost">₹0</div>
+          </div>
+          <div class="kpi-box">
+            <div class="kpi-label">Net Margin Protected</div>
+            <div class="kpi-val" id="valNetProtected" style="color: var(--risk-low);">₹0</div>
+          </div>
+          <div class="kpi-box">
+            <div class="kpi-label">Intervention ROI</div>
+            <div class="kpi-val" id="valRoiMult" style="color: #1A73E8;">0x</div>
+          </div>
+        </div>
+
+        <div class="results-grid">
+          <div>
+            <div class="section-title">Subscriber & Network Telemetry</div>
+            <ul class="info-list">
+              <li><span class="info-label">Customer ID</span><span class="info-value" id="valCustId">-</span></li>
+              <li><span class="info-label">City & Site Type</span><span class="info-value" id="valCity">-</span></li>
+              <li><span class="info-label">Active Plan</span><span class="info-value" id="valPlan">-</span></li>
+              <li><span class="info-label">Monthly Rental</span><span class="info-value" id="valRental">-</span></li>
+              <li><span class="info-label">Access Tech & Status</span><span class="info-value" id="valTech">-</span></li>
+              <li><span class="info-label">CPE Router Model</span><span class="info-value" id="valCpe">-</span></li>
+              <li><span class="info-label">Age on Network</span><span class="info-value" id="valAon">-</span></li>
+              <li><span class="info-label">Monthly Data Usage</span><span class="info-value" id="valUsage">-</span></li>
+              <li><span class="info-label">Unplanned Outages</span><span class="info-value" id="valOutages">-</span></li>
+              <li><span class="info-label">Repeat Tickets</span><span class="info-value" id="valRepeats">-</span></li>
+            </ul>
+          </div>
+
+          <div>
+            <div class="section-title">Key Contributing Factors (SHAP Drivers)</div>
+            <div id="factorsList"></div>
+
+            <div class="recommendation-card">
+              <div id="recOfferSection" style="display: none;">
+                <div class="recommendation-title">Gemini AI Margin-Safe Retention Offer</div>
+                <div id="recOffer" style="font-size: 14px; color: #202124;"></div>
+              </div>
+              <div class="talk-track-box" id="talkTrackBox">
+                <div style="font-size: 11px; font-weight: 700; text-transform: uppercase; margin-bottom: 4px; color: #795548;">Frontline Call Centre Agent Script:</div>
+                <div id="talkTrack"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+// {{INLINE_JS}}
+  </script>
+</body>
+</html>

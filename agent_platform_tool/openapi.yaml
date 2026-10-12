@@ -1,0 +1,121 @@
+openapi: "3.0.0"
+info:
+  title: Telco Churn Intelligence & Retention Tool
+  version: "1.0.0"
+  description: >-
+    Provides real-time machine learning churn probability, feature attribution (SHAP drivers),
+    and comprehensive subscriber network usage telemetry for telco customer retention agents.
+servers:
+  - url: https://get-churn-intelligence-ostgrlgyka-uc.a.run.app
+    description: Production Google Cloud Function (Gen 2) Endpoint
+paths:
+  /churn-intelligence:
+    get:
+      operationId: getChurnIntelligence
+      summary: Retrieve customer churn probability, SHAP root causes, and usage profile
+      description: >-
+        Queries the BigQuery ML predictive engine to assess a customer's churn risk, identify top
+        contributing factors (outages, repeat complaints, billing holds), and return their current service plan.
+      parameters:
+        - name: customer_id
+          in: query
+          required: true
+          description: Unique telecom subscriber identifier (e.g., 9999116823, 9999100271).
+          schema:
+            type: string
+            example: "9999116823"
+      responses:
+        "200":
+          description: Successfully retrieved churn intelligence and customer profile
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  customer_id:
+                    type: string
+                    example: "9999116823"
+                  churn_prediction:
+                    type: object
+                    properties:
+                      churn_probability:
+                        type: number
+                        format: float
+                        example: 0.9364
+                      churn_percentage:
+                        type: string
+                        example: "93.64%"
+                      risk_tier:
+                        type: string
+                        enum: [HIGH_RISK, MEDIUM_RISK, LOW_RISK]
+                        example: HIGH_RISK
+                      summary:
+                        type: string
+                        example: "1 Repeat Complaints; 4 Network Outages (6.3 hrs); New Subscriber (< 6 mos);"
+                  key_contributing_factors:
+                    type: array
+                    description: Sorted list of SHAP attribution factors impacting churn propensity
+                    items:
+                      type: object
+                      properties:
+                        feature:
+                          type: string
+                          example: Network Outages
+                        impact:
+                          type: string
+                          enum: [CRITICAL_RISK, HIGH_RISK, MODERATE_RISK, RETENTION_SHIELD]
+                          example: HIGH_RISK
+                        attribution_weight:
+                          type: number
+                          format: float
+                          example: 1.964
+                        observation:
+                          type: string
+                          example: "4 unplanned outages totaling 6.3 hours downtime"
+                  customer_usage_profile:
+                    type: object
+                    properties:
+                      bill_plan_name:
+                        type: string
+                        example: 799 WiFi 100Mbps_PKGTEL_55818
+                      monthly_rental_inr:
+                        type: integer
+                        example: 799
+                      plan_speed_mbps:
+                        type: integer
+                        example: 100
+                      technology:
+                        type: string
+                        example: FTTH Own
+                      current_status:
+                        type: string
+                        example: Active
+                      install_city:
+                        type: string
+                        example: Junagadh
+                      age_on_network_days:
+                        type: integer
+                        example: 39
+                      current_usage_gb:
+                        type: number
+                        format: float
+                        example: 153.84
+                      support_tickets_count:
+                        type: integer
+                        example: 1
+                      repeat_tickets_count:
+                        type: integer
+                        example: 1
+                      unplanned_outages_count:
+                        type: integer
+                        example: 4
+                      outage_duration_hours:
+                        type: number
+                        format: float
+                        example: 6.26
+        "400":
+          description: Bad request (missing customer_id parameter)
+        "404":
+          description: Subscriber not found
+        "500":
+          description: Internal database query error
