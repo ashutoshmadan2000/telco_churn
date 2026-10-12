@@ -461,7 +461,7 @@ function recalcRoiTable() {
   summaryTr.style.borderTop = '2px solid #CBD5E1';
   summaryTr.innerHTML = `
     <td>
-      <strong>TOTAL (100K Scored Base)</strong>
+      <strong>TOTAL (400K Scored Base)</strong>
       <div style="font-size:11px; color:var(--text-sub);">Targetable High + Med: ${targetSubs.toLocaleString('en-IN')}</div>
     </td>
     <td><strong>${allSubs.toLocaleString('en-IN')}</strong></td>
@@ -1065,7 +1065,7 @@ function renderHeatmapTable() {
   summaryTr.style.background = '#F8FAFC';
   summaryTr.style.borderTop = '2px solid #CBD5E1';
   summaryTr.innerHTML = `
-    <td><strong>${selectedCityFilter ? `TOTAL (${selectedCityFilter})` : 'TOTAL (All 15 Cities • 100K Base)'}</strong></td>
+    <td><strong>${selectedCityFilter ? `TOTAL (${selectedCityFilter})` : 'TOTAL (All 15 Cities • 400K Base)'}</strong></td>
     <td><span class="cat-count-badge">${sumCategories} Categories</span></td>
     <td>
       <strong>${sumSubs.toLocaleString('en-IN')}</strong>
